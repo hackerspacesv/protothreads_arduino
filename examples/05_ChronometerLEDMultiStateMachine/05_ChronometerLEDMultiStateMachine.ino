@@ -39,6 +39,21 @@ bool tick_flag = false;
 bool btn1_flag = false;
 bool btn2_flag = false;
 
+const int led1 = 6, led2 = 7, led3 = 8;
+
+enum valid_states2 {
+  ALL_OFF         = 0,
+  LED1ON_LED2OFF  = 1,
+  LED1OFF_LED2ON  = 2,
+  LED2OFF_LED3ON  = 3,
+  LED3OFF         = 4
+};
+
+bool tick_flag2 = false;
+long lastTimestamp2 = 0;
+
+int machine2_state = 0;
+
 void displayElapsedTime(long elapsedSeconds) {
   char stringTime[9];
   
@@ -54,6 +69,11 @@ void displayElapsedTime(long elapsedSeconds) {
   //lcd.setCursor(0,0);
   //lcd.print(stringTime);
   Serial.println(stringTime);
+
+  // Configuration
+  pinMode(led1, OUTPUT);
+  pinMode(led2, OUTPUT);
+  pinMode(led3, OUTPUT);
 }
 
 void loop() {
@@ -79,11 +99,6 @@ void loop() {
   
   switch(machine_state) {
     case WAIT:
-      if(tick_flag) {
-        tick_flag = false;
-        machine_state = DISPLAY_TIME;
-        break;
-      } 
       if(btn1_flag) {
         btn1_flag = false;
         machine_state = START_STOP_CLOCK;
@@ -94,6 +109,11 @@ void loop() {
         machine_state = RESET;
         break;
       }
+      if(tick_flag) {
+        tick_flag = false;
+        machine_state = DISPLAY_TIME;
+        break;
+      } 
       break;
     
     case DISPLAY_TIME:
@@ -118,4 +138,60 @@ void loop() {
       machine_state = WAIT;
       break;
   }
+
+  //-- Start of second machine state.
+    // Este evento se llama cada medio segundo
+  if((millis()-lastTimestamp2)>500) {
+    tick_flag2 = true;
+    lastTimestamp2 = millis();
+  }
+  
+  switch(machine2_state) {
+    case ALL_OFF:
+        digitalWrite(led1, LOW);
+        digitalWrite(led2, LOW);
+        digitalWrite(led3, LOW);
+        if(tick_flag2) {
+          tick_flag2 = false;
+          machine2_state = LED1ON_LED2OFF;
+          break;
+        }
+      break;
+    case LED1ON_LED2OFF:
+        digitalWrite(led1, HIGH);
+        digitalWrite(led2, LOW);
+        if(tick_flag2) {
+          tick_flag2 = false;
+          machine2_state = LED1OFF_LED2ON;
+          break;
+        }
+      break;
+    case LED1OFF_LED2ON:
+        digitalWrite(led1, LOW);
+        digitalWrite(led2, HIGH);
+        if(tick_flag2) {
+          tick_flag2 = false;
+          machine2_state = LED2OFF_LED3ON;
+          break;
+        }
+      break;
+    case LED2OFF_LED3ON:
+        digitalWrite(led2, LOW);
+        digitalWrite(led3, HIGH);
+        if(tick_flag2) {
+          tick_flag2 = false;
+          machine2_state = LED3OFF;
+          break;
+        }
+      break;
+    case LED3OFF:
+        digitalWrite(led3, LOW);
+        if(tick_flag2) {
+          tick_flag2 = false;
+          machine2_state = ALL_OFF;
+          break;
+        }
+      break;
+  }
+  
 }
